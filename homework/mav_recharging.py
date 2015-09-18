@@ -49,19 +49,29 @@ class MAV(Thread):
       charge_time_sec=1.5,
       # Any extra args.
       **kwargs):
-
+        super(MAV, self).__init__(**kwargs)
         # Before flying:
         self._state = None
-
+        self._counter = 2
         # Your code here.
-
+        self._left_electrode = left_electrode
+        self._right_electrode = right_electrode
+        self._fly_time_sec = fly_time_sec
+        self._charge_time_sec = charge_time_sec
+        
     def run(self):
         # Your code here.
         #
         # Fly while ``self.running`` is True. Update your state:
         self._state = _MAV_STATES.Flying
+        sleep(self._fly_time_sec)
         self._state = _MAV_STATES.Waiting
-        self._state = _MAV_STATES.Charging
+        with self._left_electrode:
+            self._left_electrode = True
+            with self._right_electrode:
+                self._right_electro = True
+                self._state = _MAV_STATES.Charging
+                sleep(self._charge_time_sec)
         # When done flying:
         self._state = None
 #
@@ -136,6 +146,45 @@ class TestMav(object):
             # Verify that it exited correctly -- the thread should be dead.
             assert not m.isAlive()
 
+    def test_2(self):
+        e_left = MockElectrode()
+        e_right = MockElectrode()
+        m1 = MAV(e_left, e_right, 0.05, 0.15)
+        m2 = MAV(e_left, e_right, 0.05, 0.15)
+        assert m1._state == None
+        assert m2._state == None
+        m1.start()
+        sleep(0.02)
+        m2.start()
+
+        try:
+            sleep(0.01)
+            assert m1._state == _MAV_STATES.Flying
+            assert m2._state == _MAV_STATES.Flying
+            sleep(0.05)
+            assert m1._state == _MAV_STATES.Waiting
+            assert m2._state == _MAV_STATES.Waiting
+            sleep(0.20)
+            assert m1._state == _MAV_STATES.Waiting
+            assert m2._state == _MAV_STATES.Waiting
+            e_left.q.put(True)
+            e_right.q.put(True)
+            sleep (0.01)
+            assert m1._state == _MAV_STATES.Charging
+            assert m2._state == _MAV_STATES.Waiting
+            sleep(0.15)
+            assert m1._state == None
+            e_left.q.put(True)
+            e_right.q.put(True)
+            sleep(0.01)
+            assert m2._state == _MAV_STATES.Charging
+            sleep(0.15)
+            assert m2._state == None
+        finally:
+            pass
+
+
+'''
 class TestElectrode(object):
     # Releasing an electrode not in use should raise an exception.
     def test_1(self):
@@ -160,6 +209,7 @@ class TestElectrode(object):
         with e:
             assert not e.acquire(False)
         assert e.acquire()
+'''
 #
 # main code
 # =========

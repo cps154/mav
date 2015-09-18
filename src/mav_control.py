@@ -74,6 +74,8 @@ from PyQt4.QtCore import QElapsedTimer, pyqtSlot
 # existing code in ButtonGui, which takes =care of all the
 # lower-level work (displaying video, running the GUI, etc.)
 class MavControl(ButtonGui):
+    def on_hsThreshold_valueChanged(self, value):
+        print(value)
     # This is called when the pbPressed button is pressed.
     # Naming is similar for other functions.
     def on_pbTakeoff_pressed(self):
