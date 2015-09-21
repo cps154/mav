@@ -61,27 +61,41 @@ class MAV(Thread):
         super(MAV, self).__init__(**kwargs)
         # Before flying:
         self._state = None
-
         # Generate instances of the passed arguments
         self._left_electrode = left_electrode
         self._right_electrode = right_electrode
         self._fly_time_sec = fly_time_sec
         self._charge_time_sec = charge_time_sec
-        
+        self.running = False
+
     def run(self):
         # Fly while ``self.running`` is True. Update your state:
-        self._state = _MAV_STATES.Flying
-        sleep(self._fly_time_sec)
-        
-        self._state = _MAV_STATES.Waiting
-        # Lock in the electrodes
-        with self._left_electrode:
-            with self._right_electrode:
-                self._state = _MAV_STATES.Charging
-                sleep(self._charge_time_sec)
-        
-        # When done flying:
-        self._state = None
+        self.running = True
+        while self.running == True:
+            self._state = _MAV_STATES.Flying
+            sleep(self._fly_time_sec)
+            
+            self._state = _MAV_STATES.Waiting
+            # Lock in the electrodes
+            with self._left_electrode:
+                with self._right_electrode:
+                    self._state = _MAV_STATES.Charging
+                    sleep(self._charge_time_sec)
+            # When done flying:
+            self._state = None
+
+'''
+# Electrode Class
+# ---------------
+class Electrode(object):
+    def __init__(self, lock):
+        self._lock = lock
+    
+    def getElectrode(self):
+        with self._lock:
+            
+'''
+
 #
 # Testing
 # =======
@@ -233,52 +247,9 @@ class TestMav(object):
     def test_2(self):
         self.fly_missions(0.10, 0.20, 2)
 
-
     def test_3(self):
-        e_left = MockElectrode()
-        e_right = MockElectrode()
-        m1 = MAV(e_left, e_right, 0.05, 0.15)
-        m2 = MAV(e_left, e_right, 0.05, 0.15)
+        self.fly_missions(0.03, 0.3, 5)
         
-        # Check the two MAVS
-        assert m1._state == None
-        assert m2._state == None
-        m1.start()
-        # Offset take off times
-        sleep(0.02)
-        m2.start()
-
-        try:
-            sleep(0.01)
-            assert m1._state == _MAV_STATES.Flying
-            assert m2._state == _MAV_STATES.Flying
-            
-            sleep(0.05)
-            assert m1._state == _MAV_STATES.Waiting
-            assert m2._state == _MAV_STATES.Waiting
-            
-            sleep(0.20)
-            assert m1._state == _MAV_STATES.Waiting
-            assert m2._state == _MAV_STATES.Waiting
-            
-            e_left.q.put(True)
-            e_right.q.put(True)
-            sleep (0.01)
-            assert m1._state == _MAV_STATES.Charging
-            assert m2._state == _MAV_STATES.Waiting
-            sleep(0.15)
-            
-            # Make sure that one is done and two starts
-            assert m1._state == None
-            e_left.q.put(True)
-            e_right.q.put(True)
-            sleep(0.01)
-            assert m2._state == _MAV_STATES.Charging
-            sleep(0.15)
-            assert m2._state == None
-            
-        finally:
-            pass
 
 
 '''
