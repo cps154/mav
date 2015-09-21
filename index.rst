@@ -22,6 +22,8 @@ These serve as the starting point for homework assignments.
    :maxdepth: 2
 
    homework/pick_val.py
+   homework/mav_recharging.py
+   homework/mav_gui.py
 
 MAV control
 -----------
