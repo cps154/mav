@@ -294,6 +294,7 @@ class TestElectrode(object):
             assert not e.acquire(False)
         assert e.acquire()
 
+        
 #
 # main code
 # =========
