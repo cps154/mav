@@ -88,27 +88,31 @@ class MAV(Thread):
 # Electrode Class
 # ---------------
 class Electrode(object):
+    # Initialize the object
     def __init__(self):
-        self._lock = False
+        self._lock = Lock()
+        self._locked = False
 
-
-    def acquire(self):
-        if self._lock == False:
-            self._lock = True
-        else:
-            return False
-
+    # Function that allows the mav to hold onto the electrode.
+    def acquire(self,*args):
+        with self._lock:
+            if self._locked == False:
+                self._locked = True
+                return True
+            elif self._locked == True:
+                return False
+    # Function that allos the mav to let go of the electrode.
     def release(self):
-        if self._lock == True:
-            self._lock = False
-        else:
-            raise ThreadError
+        with self._lock:
+            if self._locked == True:
+                self._locked = False
+            else:
+                raise ThreadError
+    # Multithreading things that are necessary in order to work properly.
     def __enter__(self):
-        with self._lock:
-            self.acquire()
+        self.acquire()
     def __exit__(self, Type, Value, Traceback):
-        with self._lock:
-            self.release()
+        self.release()
 #
 # Testing
 # =======
@@ -252,7 +256,7 @@ class TestMav(object):
             # the state None.
             assert not m.isAlive()
             assert m._state == None
-'''
+
     # Single mission tests.
     def test_1(self):
         self.fly_missions(0.05, 0.15, 1)
@@ -262,7 +266,7 @@ class TestMav(object):
 
     def test_3(self):
         self.fly_missions(0.03, 0.3, 5)
-'''
+
 
 
 
